@@ -20,6 +20,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.draw.clip
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
 
 // Data class untuk item dalam daftar
 data class Item(
@@ -34,21 +38,36 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 val sampleItems = listOf(
-                    Item("Tumbler Hijau", "Terakhir kali saya memakai...", R.drawable.sample_image1),
+                    Item("Tumbler Hijau", "Terakhir kali saya memakai tumbler ini adalah sekitar jam 12.50 di FEB, selepas sholat dhuhr dan hendak menuju kelas.", R.drawable.sample_image1),
                     Item("Kacamata Anti Radiasi", "Minggu ini kuliahkan di R...", R.drawable.sample_image2),
                     Item("Rolex Terbaru", "Kulitnya warna cokelat dan...", R.drawable.sample_image3),
                     Item("Converse Pink Muda", "Ukuran 38, ada coretan...", R.drawable.sample_image4),
                     Item("Tas Rajut Putih", "Buat valentine tapi putus...", R.drawable.sample_image5)
                 )
-                HomeScreen(items = sampleItems)
+                AppNavigation(sampleItems)
             }
+        }
+    }
+}
+
+@Composable
+fun AppNavigation(items: List<Item>) {
+    val navController = rememberNavController()
+    NavHost(navController = navController, startDestination = "home") {
+        composable("home") {
+            HomeScreen(items = items, navController = navController)
+        }
+        composable("detail/{itemName}") { backStackEntry ->
+            val itemName = backStackEntry.arguments?.getString("itemName")
+            val item = items.find { it.name == itemName }
+            item?.let { DetailScreen(item, navController) }
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(items: List<Item>) {
+fun HomeScreen(items: List<Item>, navController: NavHostController) {
     Scaffold(
         topBar = {
             TopAppBar(
@@ -101,14 +120,14 @@ fun HomeScreen(items: List<Item>) {
                 .padding(padding)
         ) {
             items(items) { item ->
-                ItemCard(item)
+                ItemCard(item, navController)
             }
         }
     }
 }
 
 @Composable
-fun ItemCard(item: Item) {
+fun ItemCard(item: Item, navController: NavHostController) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -139,9 +158,62 @@ fun ItemCard(item: Item) {
                     color = Color.Gray
                 )
             }
-            TextButton(onClick = {}) {
+            TextButton(onClick = { navController.navigate("detail/${item.name}") }) {
                 Text(text = "Lihat")
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DetailScreen(item: Item, navController: NavHostController) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text(text = "Detail Barang") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(
+                            painter = painterResource(id = android.R.drawable.ic_media_previous),
+                            contentDescription = "Back"
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.smallTopAppBarColors(
+                    containerColor = Color(0xFF6200EE),
+                    titleContentColor = Color.White
+                )
+            )
+        }
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(16.dp)
+        ) {
+            Image(
+                painter = painterResource(id = item.imageRes),
+                contentDescription = "Gambar detail untuk ${item.name}",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .clip(RoundedCornerShape(16.dp)),
+                contentScale = ContentScale.Crop
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = item.name,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = item.description,
+                fontSize = 16.sp,
+                color = Color.Gray
+            )
         }
     }
 }
@@ -150,9 +222,10 @@ fun ItemCard(item: Item) {
 @Composable
 fun PreviewHomeScreen() {
     val sampleItems = listOf(
-        Item("Tumbler Hijau", "Terakhir kali saya memakai...", android.R.drawable.ic_menu_gallery),
+        Item("Tumbler Hijau", "Terakhir kali saya memakai tumbler ini adalah sekitar jam 12.50 di FEB, selepas sholat dhuhr dan hendak menuju kelas.", android.R.drawable.ic_menu_gallery),
         Item("Kacamata Anti Radiasi", "Minggu ini kuliahkan di R...", android.R.drawable.ic_menu_camera),
         Item("Rolex Terbaru", "Kulitnya warna cokelat dan...", android.R.drawable.ic_menu_slideshow)
     )
-    HomeScreen(items = sampleItems)
+    val navController = rememberNavController()
+    HomeScreen(items = sampleItems, navController = navController)
 }
